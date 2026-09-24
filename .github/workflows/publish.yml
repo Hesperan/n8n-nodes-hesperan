@@ -5,7 +5,7 @@
 # n8n requires community nodes submitted for verification to be published from GitHub Actions with
 # provenance (from 1 May 2026): https://docs.n8n.io/connect/create-nodes/deploy-your-node/submit-community-nodes
 #
-# This file belongs at .github/workflows/publish.yml in github.com/hesperan/n8n-nodes-hesperan.
+# This file belongs at .github/workflows/publish.yml in github.com/Hesperan/n8n-nodes-hesperan.
 #
 # One-time setup (see PUBLISHING.md):
 #   npmjs.com → package n8n-nodes-hesperan → Settings → Trusted Publisher → GitHub Actions:

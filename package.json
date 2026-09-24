@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"description": "n8n node for Hesperan: calibrated decisions that route each item to Auto or Review, ad-hoc typed questions, and outcome feedback.",
 	"license": "MIT",
-	"homepage": "https://github.com/hesperan/n8n-nodes-hesperan#readme",
+	"homepage": "https://github.com/Hesperan/n8n-nodes-hesperan#readme",
 	"keywords": [
 		"n8n-community-node-package",
 		"n8n",
@@ -19,10 +19,10 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/hesperan/n8n-nodes-hesperan.git"
+		"url": "git+https://github.com/Hesperan/n8n-nodes-hesperan.git"
 	},
 	"bugs": {
-		"url": "https://github.com/hesperan/n8n-nodes-hesperan/issues"
+		"url": "https://github.com/Hesperan/n8n-nodes-hesperan/issues"
 	},
 	"engines": {
 		"node": ">=22"

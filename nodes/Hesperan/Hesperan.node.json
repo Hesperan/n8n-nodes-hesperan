@@ -10,12 +10,12 @@
 	"resources": {
 		"credentialDocumentation": [
 			{
-				"url": "https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials"
+				"url": "https://github.com/Hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials"
 			}
 		],
 		"primaryDocumentation": [
 			{
-				"url": "https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file"
+				"url": "https://github.com/Hesperan/n8n-nodes-hesperan?tab=readme-ov-file"
 			},
 			{
 				"url": "https://hesperan.com/docs/profiles"

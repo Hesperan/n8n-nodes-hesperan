@@ -16,7 +16,7 @@ export class HesperanApi implements ICredentialType {
 	} as const;
 
 	documentationUrl =
-		'https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials';
+		'https://github.com/Hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials';
 
 	properties: INodeProperties[] = [
 		{
