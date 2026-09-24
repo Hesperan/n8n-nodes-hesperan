@@ -111,7 +111,7 @@ export function hesperanError(
 		case 402:
 			message = `Hesperan: ${apiMessage}`;
 			description =
-				'Nothing was charged. Top up, upgrade, or allow pay-as-you-go from your balance in the Hesperan console, then run again.';
+				'Nothing was charged. Top up your balance or subscribe to Pro in the Hesperan console (Billing), then run again.';
 			break;
 		case 404:
 			if (request.endpoint === 'decide') {

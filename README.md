@@ -112,7 +112,7 @@ Messages say what happened and what to do; nothing is charged for any of these.
 | Status               | Message in n8n                                                                                                   | Retried                        |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | 401                  | Hesperan rejected the API key                                                                                    | no                             |
-| 402                  | the allowance message from Hesperan, e.g. "free allowance used up — top up …"                                    | no                             |
+| 402                  | the billing message from Hesperan, e.g. "your 1M free tokens this month are used up … top up …"                  | no                             |
 | 404                  | Unknown decision profile "…" / Unknown decision ID                                                               | no                             |
 | 409                  | e.g. the profile has no calibration yet, Idempotency-Key reused with a different state, outcome already reported | no                             |
 | 413                  | The request is too large (at most 256 KB)                                                                        | no                             |

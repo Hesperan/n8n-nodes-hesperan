@@ -251,16 +251,16 @@ describe('errors', () => {
 		expect(error.description).toContain('Nothing was charged');
 	});
 
-	it('explains a used-up allowance (402) without retrying', async () => {
+	it('explains used-up tokens (402) without retrying', async () => {
 		const { error, calls } = await failWith({
 			statusCode: 402,
-			body: { error: 'free allowance used up — top up your balance or choose a plan' },
+			body: { error: 'your 1M free tokens this month are used up and your balance does not cover the rest — top up your balance (pay as you go, $0.25 per 1M input tokens) or subscribe to Pro' },
 		});
 		expect(calls).toHaveLength(1);
 		expect(error.message).toBe(
-			'Hesperan: free allowance used up — top up your balance or choose a plan',
+			'Hesperan: your 1M free tokens this month are used up and your balance does not cover the rest — top up your balance (pay as you go, $0.25 per 1M input tokens) or subscribe to Pro',
 		);
-		expect(error.description).toMatch(/Nothing was charged/);
+		expect(error.description).toMatch(/Nothing was charged.*subscribe to Pro/);
 	});
 
 	it('explains a rejected key (401) and an unknown profile (404)', async () => {
@@ -293,7 +293,7 @@ describe('errors', () => {
 			responses: [
 				{
 					statusCode: 402,
-					body: { error: 'free allowance used up — top up your balance or choose a plan' },
+					body: { error: 'your 1M free tokens this month are used up and your balance does not cover the rest — top up your balance (pay as you go, $0.25 per 1M input tokens) or subscribe to Pro' },
 				},
 				{ statusCode: 200, body: decision() },
 			],
@@ -304,7 +304,7 @@ describe('errors', () => {
 		expect(review[0].json).toMatchObject({
 			id: 1,
 			hesperan: {
-				error: 'Hesperan: free allowance used up — top up your balance or choose a plan',
+				error: 'Hesperan: your 1M free tokens this month are used up and your balance does not cover the rest — top up your balance (pay as you go, $0.25 per 1M input tokens) or subscribe to Pro',
 				status: 402,
 			},
 		});
