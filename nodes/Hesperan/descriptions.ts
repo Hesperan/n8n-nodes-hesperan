@@ -58,7 +58,8 @@ export const operationProperties: INodeProperties[] = [
 			{
 				name: 'Ask',
 				value: 'ask',
-				description: 'Answer typed questions (choice, yes/no, score) about a state, with probabilities',
+				description:
+					'Answer typed questions (choice, yes/no, score) about a state, with probabilities',
 				action: 'Ask questions about a state',
 			},
 		],
@@ -115,7 +116,11 @@ const stateProperties = (show: Record<string, string[]>): INodeProperties[] => [
 ];
 
 /** The profile: picked from the account's profiles, or typed as a slug (also as an expression). */
-const profileProperty = (show: Record<string, string[]>, required: boolean, description: string): INodeProperties => ({
+const profileProperty = (
+	show: Record<string, string[]>,
+	required: boolean,
+	description: string,
+): INodeProperties => ({
 	displayName: 'Profile',
 	name: 'profile',
 	type: 'resourceLocator',
@@ -138,7 +143,10 @@ const profileProperty = (show: Record<string, string[]>, required: boolean, desc
 			validation: [
 				{
 					type: 'regex',
-					properties: { regex: '^[^\\s/]+$', errorMessage: 'A profile slug has no spaces or slashes' },
+					properties: {
+						regex: '^[^\\s/]+$',
+						errorMessage: 'A profile slug has no spaces or slashes',
+					},
 				},
 			],
 		},
@@ -163,11 +171,21 @@ export const decideProperties: INodeProperties[] = [
 			'Optional. The same key with the same state within 24 hours returns the first decision again and is not charged twice. Up to 255 visible ASCII characters, for example a ticket or message ID.',
 	},
 	{
-		displayName: 'Items that get a decision go to <b>Auto</b> when its calibrated confidence reaches the profile\'s threshold, and to <b>Review</b> otherwise, for a person to decide',
+		displayName:
+			"Items that get a decision go to <b>Auto</b> when its calibrated confidence reaches the profile's threshold, and to <b>Review</b> otherwise, for a person to decide",
 		name: 'decideNotice',
 		type: 'notice',
 		displayOptions: { show: decide },
 		default: '',
+	},
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		displayOptions: { show: decide },
+		default: true,
+		description:
+			'Whether to return a simplified version of the response instead of the raw data (which adds the threshold, the target precision, the calibration version and the uncalibrated probabilities)',
 	},
 	{
 		displayName: 'Options',
@@ -218,7 +236,10 @@ export const reportOutcomeProperties: INodeProperties[] = [
 		name: 'actual',
 		type: 'options',
 		required: true,
-		typeOptions: { loadOptionsMethod: 'getProfileAnswers', loadOptionsDependsOn: ['profile.value'] },
+		typeOptions: {
+			loadOptionsMethod: 'getProfileAnswers',
+			loadOptionsDependsOn: ['profile.value'],
+		},
 		displayOptions: { show: reportOutcome },
 		default: '',
 		description:
@@ -334,24 +355,26 @@ export const askProperties: INodeProperties[] = [
 						name: 'noMeans',
 						type: 'string',
 						default: '',
-						description: 'Optional:\twhat \'no\' means in this case',
+						description: "Optional:\twhat 'no' means in this case",
 					},
 					{
 						displayName: 'Options',
 						name: 'options',
 						type: 'string',
 						default: '',
-						placeholder: 'billing:\tpayments, invoices, refunds\nshipping:\tdelivery and returns\ntechnical',
-						description: 'One option per line:\ta key, optionally followed by a colon and a description',
+						placeholder:
+							'billing:\tpayments, invoices, refunds\nshipping:\tdelivery and returns\ntechnical',
+						description:
+							'One option per line:\ta key, optionally followed by a colon and a description',
 					},
 					{
 						displayName: 'Yes Means',
 						name: 'yesMeans',
 						type: 'string',
 						default: '',
-						description: 'Optional:\twhat \'yes\' means in this case',
+						description: "Optional:\twhat 'yes' means in this case",
 					},
-			],
+				],
 			},
 		],
 	},

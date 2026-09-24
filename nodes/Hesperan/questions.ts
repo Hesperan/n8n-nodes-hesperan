@@ -62,17 +62,22 @@ export function buildQuestions(list: QuestionFields[]): Record<string, ApiQuesti
 			const criteria = parseOptions(q.options);
 			const count = Object.keys(criteria).length;
 			if (count < 2) throw new QuestionError(`${label} needs at least two options, one per line`);
-			if (count > MAX_OPTIONS) throw new QuestionError(`${label} has more than ${MAX_OPTIONS} options`);
+			if (count > MAX_OPTIONS)
+				throw new QuestionError(`${label} has more than ${MAX_OPTIONS} options`);
 			questions[name] = { type, instructions, criteria };
 		} else if (type === 'noul') {
 			const criteria: { true?: string; false?: string } = {};
 			if (q.yesMeans?.trim()) criteria.true = q.yesMeans.trim();
 			if (q.noMeans?.trim()) criteria.false = q.noMeans.trim();
-			questions[name] = Object.keys(criteria).length ? { type, instructions, criteria } : { type, instructions };
+			questions[name] = Object.keys(criteria).length
+				? { type, instructions, criteria }
+				: { type, instructions };
 		} else if (type === 'score') {
 			const criteria = lines(q.levels);
-			if (criteria.length < 2) throw new QuestionError(`${label} needs at least two levels, lowest first, one per line`);
-			if (criteria.length > MAX_OPTIONS) throw new QuestionError(`${label} has more than ${MAX_OPTIONS} levels`);
+			if (criteria.length < 2)
+				throw new QuestionError(`${label} needs at least two levels, lowest first, one per line`);
+			if (criteria.length > MAX_OPTIONS)
+				throw new QuestionError(`${label} has more than ${MAX_OPTIONS} levels`);
 			questions[name] = { type, instructions, criteria };
 		} else {
 			throw new QuestionError(`${label} has an unknown type "${String(type)}"`);
@@ -98,7 +103,9 @@ export function validateQuestionsJson(value: unknown): IDataObject {
 		if (parsed === undefined) throw new QuestionError('Questions (JSON) is not valid JSON');
 	}
 	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-		throw new QuestionError('Questions (JSON) must be an object: question name → { type, instructions, criteria }');
+		throw new QuestionError(
+			'Questions (JSON) must be an object: question name → { type, instructions, criteria }',
+		);
 	}
 	const entries = Object.entries(parsed as IDataObject);
 	if (!entries.length) throw new QuestionError('add at least one question');

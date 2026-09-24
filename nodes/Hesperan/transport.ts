@@ -55,7 +55,8 @@ const asObject = (body: unknown): IDataObject => {
 	if (typeof body === 'string') {
 		try {
 			const parsed: unknown = JSON.parse(body);
-			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as IDataObject;
+			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+				return parsed as IDataObject;
 		} catch {
 			// not JSON; handled below
 		}
@@ -99,7 +100,8 @@ export function hesperanError(
 	switch (status) {
 		case 400:
 			message = `Hesperan rejected the request: ${apiMessage}`;
-			description = 'Fix the request; sending it again unchanged will fail the same way. Nothing was charged.';
+			description =
+				'Fix the request; sending it again unchanged will fail the same way. Nothing was charged.';
 			break;
 		case 401:
 			message = 'Hesperan rejected the API key';
@@ -121,7 +123,8 @@ export function hesperanError(
 					'Report outcomes with the decision_id returned by "Decide", using an API key of the same account.';
 			} else {
 				message = `Hesperan: ${apiMessage}`;
-				description = 'Check the base URL in the Hesperan credential (default https://api.hesperan.com).';
+				description =
+					'Check the base URL in the Hesperan credential (default https://api.hesperan.com).';
 			}
 			break;
 		case 409:
@@ -208,7 +211,8 @@ export async function hesperanRequest(
 		const body = asObject(response.body);
 		if (status >= 200 && status < 300) {
 			const headers: Record<string, string> = {};
-			for (const [key, value] of Object.entries(response.headers ?? {})) headers[key.toLowerCase()] = String(value);
+			for (const [key, value] of Object.entries(response.headers ?? {}))
+				headers[key.toLowerCase()] = String(value);
 			return { body, headers };
 		}
 

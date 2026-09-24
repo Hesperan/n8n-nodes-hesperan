@@ -55,14 +55,25 @@ describe('Decide', () => {
 			items: [{ json: { id: 1 } }, { json: { id: 2 } }, { json: { id: 3 } }],
 			responses: [
 				{ statusCode: 200, body: decision() },
-				{ statusCode: 200, body: decision({ decision_id: 'd-2', action: 'review', confidence: 0.61 }) },
+				{
+					statusCode: 200,
+					body: decision({ decision_id: 'd-2', action: 'review', confidence: 0.61 }),
+				},
 				{ statusCode: 200, body: decision({ decision_id: 'd-3', action: 'something new' }) },
 			],
 		});
 		const [auto, review] = await result;
 		expect(auto.map((i) => i.json.id)).toEqual([1]);
 		expect(review.map((i) => i.json.id)).toEqual([2, 3]);
-		expect(auto[0].json.hesperan).toMatchObject({ decision: 'billing', action: 'auto', decision_id: 'd-1', replayed: false });
+		expect(auto[0].json.hesperan).toEqual({
+			decision: 'billing',
+			confidence: 0.9931,
+			action: 'auto',
+			decision_id: 'd-1',
+			probabilities: { billing: 0.9931, shipping: 0.0069 },
+			profile: 'ticket-routing',
+			replayed: false,
+		});
 		expect(auto[0].pairedItem).toEqual({ item: 0 });
 		expect(review[1].pairedItem).toEqual({ item: 2 });
 
@@ -82,11 +93,22 @@ describe('Decide', () => {
 	it('sends the Idempotency-Key and reports a replayed decision', async () => {
 		const { result, calls } = run({
 			parameters: decide({ idempotencyKey: 'ticket-4812' }),
-			responses: [{ statusCode: 200, body: decision(), headers: { 'Idempotent-Replayed': 'true' } }],
+			responses: [
+				{ statusCode: 200, body: decision(), headers: { 'Idempotent-Replayed': 'true' } },
+			],
 		});
 		const [auto] = await result;
 		expect(calls[0].options.headers).toMatchObject({ 'Idempotency-Key': 'ticket-4812' });
 		expect(auto[0].json.hesperan).toMatchObject({ replayed: true });
+	});
+
+	it('returns the raw response when Simplify is off', async () => {
+		const { result } = run({
+			parameters: decide({ simplify: false }),
+			responses: [{ statusCode: 200, body: decision() }],
+		});
+		const [auto] = await result;
+		expect(auto[0].json.hesperan).toEqual({ ...decision(), replayed: false });
 	});
 
 	it('refuses an invalid Idempotency-Key before calling the API', async () => {
@@ -102,7 +124,9 @@ describe('Decide', () => {
 			responses: [{ statusCode: 200, body: decision() }],
 		});
 		await item.result;
-		expect(item.calls[0].options.body).toEqual({ state: { subject: 'Refund', body: 'charged twice' } });
+		expect(item.calls[0].options.body).toEqual({
+			state: { subject: 'Refund', body: 'charged twice' },
+		});
 
 		const json = run({
 			parameters: decide({ stateSource: 'json', stateJson: '{"subject":"Refund"}' }),
@@ -126,14 +150,21 @@ describe('Decide', () => {
 			items: [{ json: { id: 7 } }],
 			responses: [{ statusCode: 200, body: decision() }],
 		});
-		expect((await field.result)[0][0].json).toMatchObject({ id: 7, triage: { decision: 'billing' } });
+		expect((await field.result)[0][0].json).toMatchObject({
+			id: 7,
+			triage: { decision: 'billing' },
+		});
 
 		const merged = run({
 			parameters: decide({ options: { outputField: '' } }),
 			items: [{ json: { id: 7 } }],
 			responses: [{ statusCode: 200, body: decision() }],
 		});
-		expect((await merged.result)[0][0].json).toMatchObject({ id: 7, decision: 'billing', action: 'auto' });
+		expect((await merged.result)[0][0].json).toMatchObject({
+			id: 7,
+			decision: 'billing',
+			action: 'auto',
+		});
 	});
 
 	it('uses the base URL from the credential without a trailing slash and escapes the slug', async () => {
@@ -148,8 +179,14 @@ describe('Decide', () => {
 });
 
 describe('errors', () => {
-	const failWith = async (response: { statusCode: number; body?: unknown; headers?: Record<string, string> }, extra: IDataObject = {}) => {
-		const { result, calls } = run({ parameters: decide(extra), responses: [response, response, response, response] });
+	const failWith = async (
+		response: { statusCode: number; body?: unknown; headers?: Record<string, string> },
+		extra: IDataObject = {},
+	) => {
+		const { result, calls } = run({
+			parameters: decide(extra),
+			responses: [response, response, response, response],
+		});
 		const error = await result.then(
 			() => null,
 			(e: unknown) => e,
@@ -160,7 +197,9 @@ describe('errors', () => {
 	it('says plainly that the API is not open yet and does not retry', async () => {
 		const { error, calls } = await failWith({
 			statusCode: 503,
-			body: { error: 'the Hesperan API opens soon — no model is connected yet; nothing was charged' },
+			body: {
+				error: 'the Hesperan API opens soon — no model is connected yet; nothing was charged',
+			},
 		});
 		expect(error).toBeInstanceOf(NodeApiError);
 		expect(error.message).toBe('The Hesperan API is not open yet: no model is connected');
@@ -174,7 +213,11 @@ describe('errors', () => {
 		const { result, calls } = run({
 			parameters: decide(),
 			responses: [
-				{ statusCode: 503, body: { error: 'model is starting — retry in about 30 seconds' }, headers: { 'retry-after': '30' } },
+				{
+					statusCode: 503,
+					body: { error: 'model is starting — retry in about 30 seconds' },
+					headers: { 'retry-after': '30' },
+				},
 				{ statusCode: 200, body: decision() },
 			],
 		});
@@ -187,7 +230,11 @@ describe('errors', () => {
 	});
 
 	it('retries a rate limit at most 3 times, then explains it', async () => {
-		const { error, calls } = await failWith({ statusCode: 429, body: { error: 'rate limit exceeded' }, headers: { 'Retry-After': '2' } });
+		const { error, calls } = await failWith({
+			statusCode: 429,
+			body: { error: 'rate limit exceeded' },
+			headers: { 'Retry-After': '2' },
+		});
 		expect(calls).toHaveLength(4);
 		expect(waits).toHaveLength(3);
 		expect(error.message).toBe('Hesperan rate limit reached');
@@ -195,7 +242,10 @@ describe('errors', () => {
 	});
 
 	it('does not retry when retries are switched off', async () => {
-		const { error, calls } = await failWith({ statusCode: 502, body: { error: 'model unavailable' } }, { options: { retry: false } });
+		const { error, calls } = await failWith(
+			{ statusCode: 502, body: { error: 'model unavailable' } },
+			{ options: { retry: false } },
+		);
 		expect(calls).toHaveLength(1);
 		expect(error.message).toBe('The Hesperan model could not answer');
 		expect(error.description).toContain('Nothing was charged');
@@ -207,21 +257,26 @@ describe('errors', () => {
 			body: { error: 'free allowance used up — top up your balance or choose a plan' },
 		});
 		expect(calls).toHaveLength(1);
-		expect(error.message).toBe('Hesperan: free allowance used up — top up your balance or choose a plan');
+		expect(error.message).toBe(
+			'Hesperan: free allowance used up — top up your balance or choose a plan',
+		);
 		expect(error.description).toMatch(/Nothing was charged/);
 	});
 
 	it('explains a rejected key (401) and an unknown profile (404)', async () => {
-		expect((await failWith({ statusCode: 401, body: { error: 'unauthorized' } })).error.message).toBe(
-			'Hesperan rejected the API key',
-		);
-		expect((await failWith({ statusCode: 404, body: { error: 'unknown profile' } })).error.message).toBe(
-			'Unknown decision profile "ticket-routing"',
-		);
+		expect(
+			(await failWith({ statusCode: 401, body: { error: 'unauthorized' } })).error.message,
+		).toBe('Hesperan rejected the API key');
+		expect(
+			(await failWith({ statusCode: 404, body: { error: 'unknown profile' } })).error.message,
+		).toBe('Unknown decision profile "ticket-routing"');
 	});
 
 	it('passes 409 messages through', async () => {
-		const { error } = await failWith({ statusCode: 409, body: { error: 'profile has no calibration yet' } });
+		const { error } = await failWith({
+			statusCode: 409,
+			body: { error: 'profile has no calibration yet' },
+		});
 		expect(error.message).toBe('Hesperan: profile has no calibration yet');
 	});
 
@@ -236,7 +291,10 @@ describe('errors', () => {
 			continueOnFail: true,
 			items: [{ json: { id: 1 } }, { json: { id: 2 } }],
 			responses: [
-				{ statusCode: 402, body: { error: 'free allowance used up — top up your balance or choose a plan' } },
+				{
+					statusCode: 402,
+					body: { error: 'free allowance used up — top up your balance or choose a plan' },
+				},
 				{ statusCode: 200, body: decision() },
 			],
 		});
@@ -245,7 +303,10 @@ describe('errors', () => {
 		expect(review).toHaveLength(1);
 		expect(review[0].json).toMatchObject({
 			id: 1,
-			hesperan: { error: 'Hesperan: free allowance used up — top up your balance or choose a plan', status: 402 },
+			hesperan: {
+				error: 'Hesperan: free allowance used up — top up your balance or choose a plan',
+				status: 402,
+			},
 		});
 		expect(review[0].error).toBeUndefined();
 		expect(review[0].pairedItem).toEqual({ item: 0 });
@@ -264,9 +325,14 @@ describe('errors', () => {
 	});
 
 	it('with "continue on fail" keeps configuration errors on the item', async () => {
-		const { result } = run({ parameters: decide({ profile: { __rl: true, mode: 'slug', value: '' } }), continueOnFail: true });
+		const { result } = run({
+			parameters: decide({ profile: { __rl: true, mode: 'slug', value: '' } }),
+			continueOnFail: true,
+		});
 		const [, review] = await result;
-		expect(review[0].json.hesperan).toMatchObject({ error: 'Enter the slug of a decision profile' });
+		expect(review[0].json.hesperan).toMatchObject({
+			error: 'Enter the slug of a decision profile',
+		});
 	});
 });
 
@@ -301,19 +367,31 @@ describe('Report Outcome', () => {
 	it('explains a conflicting outcome (409) and an unknown decision (404)', async () => {
 		const conflict = run({
 			parameters: report(),
-			responses: [{ statusCode: 409, body: { error: 'an outcome was already reported for this decision: shipping' } }],
+			responses: [
+				{
+					statusCode: 409,
+					body: { error: 'an outcome was already reported for this decision: shipping' },
+				},
+			],
 		});
 		await expect(conflict.result).rejects.toMatchObject({
 			message: 'Hesperan: an outcome was already reported for this decision: shipping',
 			description: expect.stringContaining('Each decision takes one outcome'),
 		});
-		const unknown = run({ parameters: report(), responses: [{ statusCode: 404, body: { error: 'unknown decision' } }] });
+		const unknown = run({
+			parameters: report(),
+			responses: [{ statusCode: 404, body: { error: 'unknown decision' } }],
+		});
 		await expect(unknown.result).rejects.toThrow('Unknown decision ID');
 	});
 
 	it('requires a decision ID and an answer', async () => {
-		await expect(run({ parameters: report({ decisionId: ' ' }) }).result).rejects.toThrow('Enter the decision ID');
-		await expect(run({ parameters: report({ actual: '' }) }).result).rejects.toThrow('Enter the actual answer');
+		await expect(run({ parameters: report({ decisionId: ' ' }) }).result).rejects.toThrow(
+			'Enter the decision ID',
+		);
+		await expect(run({ parameters: report({ actual: '' }) }).result).rejects.toThrow(
+			'Enter the actual answer',
+		);
 	});
 });
 
@@ -327,9 +405,25 @@ describe('Ask', () => {
 		routeByAnswer: false,
 		questions: {
 			question: [
-				{ name: 'team', type: 'choice', instructions: 'Which team?', options: 'billing: money\nshipping: delivery\ntechnical' },
-				{ name: 'urgent', type: 'noul', instructions: 'The customer is upset.', yesMeans: 'angry', noMeans: '' },
-				{ name: 'priority', type: 'score', instructions: 'How urgent?', levels: 'low\nmedium\nhigh' },
+				{
+					name: 'team',
+					type: 'choice',
+					instructions: 'Which team?',
+					options: 'billing: money\nshipping: delivery\ntechnical',
+				},
+				{
+					name: 'urgent',
+					type: 'noul',
+					instructions: 'The customer is upset.',
+					yesMeans: 'angry',
+					noMeans: '',
+				},
+				{
+					name: 'priority',
+					type: 'score',
+					instructions: 'How urgent?',
+					levels: 'low\nmedium\nhigh',
+				},
 			],
 		},
 		options: {},
@@ -339,7 +433,11 @@ describe('Ask', () => {
 	const answers = (team: string, urgent = 0.2) => ({
 		model: 'hesperan-1',
 		answers: {
-			team: { type: 'choice', choice: team, probabilities: { billing: 0.1, shipping: 0.8, technical: 0.1 } },
+			team: {
+				type: 'choice',
+				choice: team,
+				probabilities: { billing: 0.1, shipping: 0.8, technical: 0.1 },
+			},
 			urgent: { type: 'noul', noul: urgent },
 			priority: { type: 'score', score: 1.2, probabilities: { '0': 0.2, '1': 0.4, '2': 0.4 } },
 		},
@@ -348,7 +446,10 @@ describe('Ask', () => {
 	});
 
 	it('builds typed questions and returns the answers', async () => {
-		const { result, calls } = run({ parameters: ask(), responses: [{ statusCode: 200, body: answers('shipping') }] });
+		const { result, calls } = run({
+			parameters: ask(),
+			responses: [{ statusCode: 200, body: answers('shipping') }],
+		});
 		const out = await result;
 		expect(out).toHaveLength(1);
 		expect(out[0][0].json.hesperan).toMatchObject({ answers: { team: { choice: 'shipping' } } });
@@ -356,9 +457,21 @@ describe('Ask', () => {
 		expect(calls[0].options.body).toEqual({
 			state: 'My parcel has been on its way for a week',
 			questions: {
-				team: { type: 'choice', instructions: 'Which team?', criteria: { billing: 'money', shipping: 'delivery', technical: '' } },
-				urgent: { type: 'noul', instructions: 'The customer is upset.', criteria: { true: 'angry' } },
-				priority: { type: 'score', instructions: 'How urgent?', criteria: ['low', 'medium', 'high'] },
+				team: {
+					type: 'choice',
+					instructions: 'Which team?',
+					criteria: { billing: 'money', shipping: 'delivery', technical: '' },
+				},
+				urgent: {
+					type: 'noul',
+					instructions: 'The customer is upset.',
+					criteria: { true: 'angry' },
+				},
+				priority: {
+					type: 'score',
+					instructions: 'How urgent?',
+					criteria: ['low', 'medium', 'high'],
+				},
 			},
 		});
 	});
@@ -407,7 +520,12 @@ describe('Ask', () => {
 		const questions = { spam: { type: 'noul', instructions: 'This is spam.' } };
 		const { result, calls } = run({
 			parameters: ask({ questionsMode: 'json', questionsJson: JSON.stringify(questions) }),
-			responses: [{ statusCode: 200, body: { model: 'hesperan-1', answers: { spam: { type: 'noul', noul: 0.1 } } } }],
+			responses: [
+				{
+					statusCode: 200,
+					body: { model: 'hesperan-1', answers: { spam: { type: 'noul', noul: 0.1 } } },
+				},
+			],
 		});
 		await result;
 		expect(calls[0].options.body).toMatchObject({ questions });
@@ -434,7 +552,9 @@ describe('Ask', () => {
 			await expect(result).rejects.toThrow(message);
 			expect(calls).toHaveLength(0);
 		}
-		const badJson = run({ parameters: ask({ questionsMode: 'json', questionsJson: '{"a":{"type":"maybe"}}' }) });
+		const badJson = run({
+			parameters: ask({ questionsMode: 'json', questionsJson: '{"a":{"type":"maybe"}}' }),
+		});
 		await expect(badJson.result).rejects.toThrow('needs "type"');
 	});
 
@@ -457,7 +577,13 @@ describe('Ask', () => {
 describe('profile pickers', () => {
 	const profiles = {
 		profiles: [
-			{ slug: 'ticket-routing', name: 'Ticket routing', type: 'choice', options: ['billing', 'shipping'], calibrated: true },
+			{
+				slug: 'ticket-routing',
+				name: 'Ticket routing',
+				type: 'choice',
+				options: ['billing', 'shipping'],
+				calibrated: true,
+			},
 			{ slug: 'spam', name: 'spam', type: 'noul', options: ['true', 'false'], calibrated: false },
 		],
 	};
@@ -470,13 +596,19 @@ describe('profile pickers', () => {
 				{ name: 'spam – not calibrated yet', value: 'spam' },
 			],
 		});
-		expect(all.calls[0].options).toMatchObject({ method: 'GET', url: 'https://api.example.test/v1/profiles' });
+		expect(all.calls[0].options).toMatchObject({
+			method: 'GET',
+			url: 'https://api.example.test/v1/profiles',
+		});
 		expect(all.calls[0].options.body).toBeUndefined();
 
-		const search = fakeContext({ parameters: {}, responses: [{ statusCode: 200, body: profiles }] });
-		expect((await searchProfiles.call(search.loadOptionsContext, 'ROUT')).results.map((r) => r.value)).toEqual([
-			'ticket-routing',
-		]);
+		const search = fakeContext({
+			parameters: {},
+			responses: [{ statusCode: 200, body: profiles }],
+		});
+		expect(
+			(await searchProfiles.call(search.loadOptionsContext, 'ROUT')).results.map((r) => r.value),
+		).toEqual(['ticket-routing']);
 	});
 
 	it('lists the answers of the chosen profile for Report Outcome', async () => {
@@ -492,7 +624,10 @@ describe('profile pickers', () => {
 			parameters: { profile: { __rl: true, mode: 'slug', value: 'spam' } },
 			responses: [{ statusCode: 200, body: profiles }],
 		});
-		expect((await getProfileAnswers.call(yesNo.loadOptionsContext)).map((o) => o.name)).toEqual(['Yes (true)', 'No (false)']);
+		expect((await getProfileAnswers.call(yesNo.loadOptionsContext)).map((o) => o.name)).toEqual([
+			'Yes (true)',
+			'No (false)',
+		]);
 		const none = fakeContext({ parameters: {} });
 		expect(await getProfileAnswers.call(none.loadOptionsContext)).toEqual([]);
 		expect(none.calls).toHaveLength(0);

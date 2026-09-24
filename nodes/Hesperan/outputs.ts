@@ -24,10 +24,13 @@ export const configuredOutputs = (parameters: Record<string, unknown>): OutputDe
 			{ type: 'main', displayName: 'Review' },
 		];
 	}
-	if (resource !== 'question' || operation !== 'ask' || parameters.routeByAnswer !== true) return single;
+	if (resource !== 'question' || operation !== 'ask' || parameters.routeByAnswer !== true)
+		return single;
 	if (parameters.questionsMode === 'json') return single;
 
-	const collection = parameters.questions as { question?: Array<Record<string, unknown>> } | undefined;
+	const collection = parameters.questions as
+		| { question?: Array<Record<string, unknown>> }
+		| undefined;
 	const list = collection && Array.isArray(collection.question) ? collection.question : [];
 	if (list.length === 0) return single;
 	const first = list[0];
@@ -39,7 +42,8 @@ export const configuredOutputs = (parameters: Record<string, unknown>): OutputDe
 			{ type: 'main', displayName: 'No' },
 		];
 	}
-	if (type !== 'choice' || typeof first.options !== 'string' || first.options.charAt(0) === '=') return single;
+	if (type !== 'choice' || typeof first.options !== 'string' || first.options.charAt(0) === '=')
+		return single;
 
 	const keys: string[] = [];
 	const lines = first.options.split('\n');

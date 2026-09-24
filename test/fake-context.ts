@@ -8,7 +8,9 @@ import type {
 } from 'n8n-workflow';
 
 /** A response the fake HTTP layer returns, or an error it throws (a network failure). */
-export type FakeResponse = { statusCode: number; body?: unknown; headers?: Record<string, string> } | Error;
+export type FakeResponse =
+	| { statusCode: number; body?: unknown; headers?: Record<string, string> }
+	| Error;
 
 export interface FakeCall {
 	credentialType: string;
@@ -36,7 +38,9 @@ function lookup(parameters: IDataObject, path: string, itemIndex: number): unkno
 
 /** A resource locator value ({ __rl, mode, value }) resolves to its value, like n8n's extractValue. */
 function locatorValue(value: unknown): unknown {
-	return value && typeof value === 'object' && 'value' in value ? (value as { value: unknown }).value : value;
+	return value && typeof value === 'object' && 'value' in value
+		? (value as { value: unknown }).value
+		: value;
 }
 
 /**
@@ -59,7 +63,12 @@ export function fakeContext(options: FakeOptions) {
 	const context = {
 		getInputData: () => items,
 		getNode: () => node,
-		getNodeParameter: (name: string, itemIndex: number, fallback?: unknown, extra?: { extractValue?: boolean }) => {
+		getNodeParameter: (
+			name: string,
+			itemIndex: number,
+			fallback?: unknown,
+			extra?: { extractValue?: boolean },
+		) => {
 			const value = lookup(options.parameters, name, itemIndex);
 			if (value === undefined) {
 				if (fallback === undefined) throw new Error(`missing parameter ${name}`);
@@ -73,9 +82,13 @@ export function fakeContext(options: FakeOptions) {
 		},
 		continueOnFail: () => options.continueOnFail === true,
 		isToolExecution: () => options.toolExecution === true,
-		getCredentials: async () => options.credentials ?? { apiKey: 'hsp_test', baseUrl: 'https://api.example.test/' },
+		getCredentials: async () =>
+			options.credentials ?? { apiKey: 'hsp_test', baseUrl: 'https://api.example.test/' },
 		helpers: {
-			httpRequestWithAuthentication: async (credentialType: string, requestOptions: IHttpRequestOptions) => {
+			httpRequestWithAuthentication: async (
+				credentialType: string,
+				requestOptions: IHttpRequestOptions,
+			) => {
 				calls.push({ credentialType, options: requestOptions });
 				const next = responses.shift();
 				if (next === undefined) throw new Error('no fake response queued');

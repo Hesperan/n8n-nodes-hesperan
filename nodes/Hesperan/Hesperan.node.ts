@@ -56,7 +56,9 @@ function readState(
 		if (typeof state === 'string') {
 			state = parseJson(state);
 			if (state === undefined) {
-				throw new NodeOperationError(this.getNode(), 'State (JSON) is not valid JSON', { itemIndex: i });
+				throw new NodeOperationError(this.getNode(), 'State (JSON) is not valid JSON', {
+					itemIndex: i,
+				});
 			}
 		}
 		if (!state || typeof state !== 'object') {
@@ -76,7 +78,8 @@ function readState(
 	if (empty && !allowEmpty) {
 		throw new NodeOperationError(this.getNode(), 'The state is empty', {
 			itemIndex: i,
-			description: 'Map the text or data to decide about into "State", or choose "Whole Input Item".',
+			description:
+				'Map the text or data to decide about into "State", or choose "Whole Input Item".',
 		});
 	}
 	return state ?? '';
@@ -183,7 +186,9 @@ export class Hesperan implements INodeType {
 			try {
 				if (resource === 'decision' && operation === 'decide') {
 					output = 1;
-					const profile = String(this.getNodeParameter('profile', i, '', { extractValue: true }) ?? '').trim();
+					const profile = String(
+						this.getNodeParameter('profile', i, '', { extractValue: true }) ?? '',
+					).trim();
 					if (!profile) {
 						throw new NodeOperationError(this.getNode(), 'Enter the slug of a decision profile', {
 							itemIndex: i,
@@ -208,10 +213,19 @@ export class Hesperan implements INodeType {
 						itemIndex: i,
 						profile,
 					});
-					const result: IDataObject = {
-						...response.body,
-						replayed: response.headers['idempotent-replayed'] === 'true',
-					};
+					const replayed = response.headers['idempotent-replayed'] === 'true';
+					const body = response.body;
+					const result: IDataObject = this.getNodeParameter('simplify', i, true)
+						? {
+								decision: body.decision,
+								confidence: body.confidence,
+								action: body.action,
+								decision_id: body.decision_id,
+								probabilities: body.probabilities,
+								profile: body.profile,
+								replayed,
+							}
+						: { ...body, replayed };
 					// anything but an explicit "auto" is for a person
 					output = result.action === 'auto' ? 0 : 1;
 					returnData[output].push({
@@ -225,7 +239,9 @@ export class Hesperan implements INodeType {
 						throw new NodeOperationError(this.getNode(), 'Enter the decision ID', { itemIndex: i });
 					}
 					if (!actual) {
-						throw new NodeOperationError(this.getNode(), 'Enter the actual answer', { itemIndex: i });
+						throw new NodeOperationError(this.getNode(), 'Enter the actual answer', {
+							itemIndex: i,
+						});
 					}
 					const options = this.getNodeParameter('options', i, {}) as Options;
 					const response = await hesperanRequest.call(this, {

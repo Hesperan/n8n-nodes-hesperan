@@ -15,7 +15,8 @@ export class HesperanApi implements ICredentialType {
 		dark: 'file:../nodes/Hesperan/hesperan.dark.svg',
 	} as const;
 
-	documentationUrl = 'https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials';
+	documentationUrl =
+		'https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials';
 
 	properties: INodeProperties[] = [
 		{
@@ -49,7 +50,8 @@ export class HesperanApi implements ICredentialType {
 	/** GET /v1/me checks the key without calling the model; it is free and not metered. */
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{String($credentials.baseUrl || "https://api.hesperan.com").replace(/\\/+$/, "")}}',
+			baseURL:
+				'={{String($credentials.baseUrl || "https://api.hesperan.com").replace(/\\/+$/, "")}}',
 			url: '/v1/me',
 			method: 'GET',
 		},
@@ -58,14 +60,16 @@ export class HesperanApi implements ICredentialType {
 				type: 'responseCode',
 				properties: {
 					value: 401,
-					message: 'Hesperan rejected the API key. Check that it was copied completely and has not been revoked.',
+					message:
+						'Hesperan rejected the API key. Check that it was copied completely and has not been revoked.',
 				},
 			},
 			{
 				type: 'responseCode',
 				properties: {
 					value: 404,
-					message: 'No Hesperan API was found at this base URL. The default is https://api.hesperan.com.',
+					message:
+						'No Hesperan API was found at this base URL. The default is https://api.hesperan.com.',
 				},
 			},
 		],
