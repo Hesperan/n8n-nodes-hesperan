@@ -1,0 +1,64 @@
+{
+	"name": "n8n-nodes-hesperan",
+	"version": "0.1.0",
+	"description": "n8n node for Hesperan: calibrated decisions that route each item to Auto or Review, ad-hoc typed questions, and outcome feedback.",
+	"license": "MIT",
+	"homepage": "https://github.com/hesperan/n8n-nodes-hesperan#readme",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"hesperan",
+		"decision",
+		"classification",
+		"triage",
+		"calibration"
+	],
+	"author": {
+		"name": "Hesperan",
+		"email": "hello@hesperan.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hesperan/n8n-nodes-hesperan.git"
+	},
+	"bugs": {
+		"url": "https://github.com/hesperan/n8n-nodes-hesperan/issues"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "vitest run",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/HesperanApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Hesperan/Hesperan.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "^0.49.1",
+		"eslint": "9.39.4",
+		"prettier": "3.8.3",
+		"release-it": "20.2.0",
+		"typescript": "5.9.3",
+		"vitest": "^5.0.1"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}
