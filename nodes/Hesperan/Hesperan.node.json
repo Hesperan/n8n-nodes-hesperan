@@ -1,0 +1,25 @@
+{
+	"node": "n8n-nodes-hesperan.hesperan",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["AI", "Productivity"],
+	"subcategories": {
+		"AI": ["Miscellaneous"]
+	},
+	"alias": ["classify", "triage", "route", "decision", "calibrated", "human in the loop"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/hesperan/n8n-nodes-hesperan?tab=readme-ov-file"
+			},
+			{
+				"url": "https://hesperan.com/docs/profiles"
+			}
+		]
+	}
+}
