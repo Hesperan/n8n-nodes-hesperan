@@ -1,4 +1,4 @@
-import { NodeApiError, NodeOperationError, type IDataObject } from 'n8n-workflow';
+import { NodeApiError, type IDataObject } from 'n8n-workflow';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Hesperan } from '../nodes/Hesperan/Hesperan.node';
@@ -247,14 +247,25 @@ describe('errors', () => {
 			id: 1,
 			hesperan: { error: 'Hesperan: free allowance used up — top up your balance or choose a plan', status: 402 },
 		});
-		expect(review[0].error).toBeInstanceOf(NodeApiError);
+		expect(review[0].error).toBeUndefined();
 		expect(review[0].pairedItem).toEqual({ item: 0 });
+	});
+
+	it('with "continue (using error output)" marks failed items for n8n\'s error output', async () => {
+		const fake = fakeContext({
+			parameters: decide(),
+			continueOnFail: true,
+			responses: [{ statusCode: 401, body: { error: 'unauthorized' } }],
+		});
+		fake.context.getNode().onError = 'continueErrorOutput';
+		const [, review] = await node.execute.call(fake.context);
+		expect(review[0].error).toBeInstanceOf(NodeApiError);
+		expect(review[0].error?.message).toBe('Hesperan rejected the API key');
 	});
 
 	it('with "continue on fail" keeps configuration errors on the item', async () => {
 		const { result } = run({ parameters: decide({ profile: { __rl: true, mode: 'slug', value: '' } }), continueOnFail: true });
 		const [, review] = await result;
-		expect(review[0].error).toBeInstanceOf(NodeOperationError);
 		expect(review[0].json.hesperan).toMatchObject({ error: 'Enter the slug of a decision profile' });
 	});
 });

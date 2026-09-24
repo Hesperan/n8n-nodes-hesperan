@@ -282,9 +282,14 @@ export class Hesperan implements INodeType {
 						details.status = Number(failure.httpCode);
 					}
 					if (failure.description) details.description = failure.description;
+					// With "continue (using error output)" n8n moves items that carry `error` to its error output
+					// (and restores the input fields there). With "continue" it would replace such an item's JSON by
+					// the message alone, so there the item keeps its fields and the error goes into the output field:
+					// a failed decision lands on Review with everything a person needs.
+					const toErrorOutput = this.getNode().onError === 'continueErrorOutput';
 					returnData[Math.min(output, returnData.length - 1)].push({
 						json: withResult(items[i], field, details),
-						error: failure,
+						...(toErrorOutput ? { error: failure } : {}),
 						pairedItem: { item: i },
 					});
 					continue;
