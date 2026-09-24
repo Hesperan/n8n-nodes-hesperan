@@ -1,0 +1,171 @@
+{
+  "name": "Gmail triage with Hesperan (Auto or Review)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Gmail triage with Hesperan\n\n**Who it's for:** teams working from one Gmail inbox who sort mail with labels.\n\n**What it does:** each new email goes to a calibrated Hesperan decision profile. On **Auto** (the calibrated confidence reached the profile's threshold) it gets the team's label. On **Review** it gets a *Needs review* label, and a person decides.\n\n**Setup**\n1. In the Hesperan console, create and calibrate a profile (here `mail-routing`) with one answer per team.\n2. Add credentials: Hesperan (API key `hsp_…`) and Gmail (OAuth2).\n3. Replace the label IDs `Label_…` in both Gmail nodes with yours (a Gmail node with *Label → Get Many* lists them).\n\nRe-runs are safe: the Gmail message ID is the Idempotency-Key, so the same email within 24 hours returns the first decision and is not charged twice.",
+        "height": 560,
+        "width": 520
+      },
+      "id": "e595e3af-b0d3-5324-b90f-d104f79e1bdc",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Auto\nLabel with the team the profile chose.",
+        "height": 240,
+        "width": 480,
+        "color": 4
+      },
+      "id": "b8e7bf21-a767-5116-ad1b-2932e5d46550",
+      "name": "Auto section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Review\nLabel for a person to decide.",
+        "height": 260,
+        "width": 480,
+        "color": 3
+      },
+      "id": "8876860b-8a8e-5bf5-b2a7-1b52aa96d184",
+      "name": "Review section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        30
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "9a186658-9e05-5969-9a05-b0f189a32b63",
+      "name": "New email (Gmail)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "decision",
+        "operation": "decide",
+        "profile": {
+          "__rl": true,
+          "mode": "slug",
+          "value": "mail-routing"
+        },
+        "stateSource": "text",
+        "stateText": "=From: {{ $json.from.text }}\nSubject: {{ $json.subject }}\n\n{{ $json.text }}",
+        "idempotencyKey": "=gmail-{{ $json.id }}",
+        "simplify": true,
+        "options": {}
+      },
+      "id": "8732dd82-74ce-5ac0-bb99-744353f4a906",
+      "name": "Hesperan: decide team",
+      "type": "n8n-nodes-hesperan.hesperan",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": "={{ [ ({ billing: 'Label_billing', shipping: 'Label_shipping', technical: 'Label_technical' })[$json.hesperan.decision] ] }}"
+      },
+      "id": "b08f03df-9d82-52d4-9552-26d754b83497",
+      "name": "Label for team",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        500,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_needs_review"
+        ]
+      },
+      "id": "7cf24d9d-6f1e-556a-a713-258dae39839a",
+      "name": "Label needs review",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        500,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "New email (Gmail)": {
+      "main": [
+        [
+          {
+            "node": "Hesperan: decide team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hesperan: decide team": {
+      "main": [
+        [
+          {
+            "node": "Label for team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Label needs review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

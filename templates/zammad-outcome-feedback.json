@@ -1,0 +1,119 @@
+{
+  "name": "Report Zammad ticket outcomes to Hesperan",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Report outcomes to Hesperan\n\n**Who it's for:** anyone running the *Zammad ticket triage* template.\n\n**What it does:** when a ticket is closed, its final group is the right answer. The workflow looks up the Hesperan decision stored for the ticket and reports that answer as the outcome. Tickets a person re-routed count as corrections. The Hesperan console then shows the live precision of automated decisions and warns when it drifts from the target.\n\nReport all outcomes (or a random sample), not only corrections, or the precision you see will be too low. Each decision takes one outcome; the same answer again is accepted, a different one is refused. Outcomes are free.\n\n**Setup**\n1. Hesperan credential (API key `hsp_…`).\n2. In Zammad, a Trigger *Ticket state is closed → Webhook* to this workflow's production URL.\n3. The Data Table `hesperan_decisions` filled by the triage template.\n4. Profile answers must equal Zammad group names; otherwise map them in **Report outcome**.",
+        "height": 600,
+        "width": 520
+      },
+      "id": "5c887e28-e240-58a3-b9a2-e06881ab3cbf",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hesperan-zammad-ticket-closed",
+        "options": {}
+      },
+      "id": "bf6906f5-9a21-5cfc-948e-3ca5d31ba35d",
+      "name": "Zammad: ticket closed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "e64da534-66db-58df-8ddb-34751f73ce7f"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "hesperan_decisions"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ticket_id",
+              "condition": "eq",
+              "keyValue": "={{ String($json.body.ticket.id) }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "c9b2bd4f-8f9a-51cc-9100-a6a03c8cf4c7",
+      "name": "Find decision",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "decision",
+        "operation": "reportOutcome",
+        "decisionId": "={{ $json.decision_id }}",
+        "profile": {
+          "__rl": true,
+          "mode": "slug",
+          "value": "ticket-routing"
+        },
+        "actual": "={{ $('Zammad: ticket closed').item.json.body.ticket.group.name }}",
+        "options": {}
+      },
+      "id": "23df5792-175e-5cef-b1ff-4c32c7806c1a",
+      "name": "Report outcome",
+      "type": "n8n-nodes-hesperan.hesperan",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Zammad: ticket closed": {
+      "main": [
+        [
+          {
+            "node": "Find decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find decision": {
+      "main": [
+        [
+          {
+            "node": "Report outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

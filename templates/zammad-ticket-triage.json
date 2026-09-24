@@ -1,0 +1,315 @@
+{
+  "name": "Zammad ticket triage with Hesperan (Auto or Review)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Zammad ticket triage with Hesperan\n\n**Who it's for:** support teams on Zammad who want new tickets routed to the right group automatically, but only when the routing is safe.\n\n**What it does:** every new ticket goes to a calibrated Hesperan decision profile. When the calibrated confidence reaches the profile's threshold, the item leaves on **Auto** and the ticket is moved to that group. Everything else leaves on **Review**: the ticket gets the tag `hesperan-review` and an internal note with the suggestion, and a person decides.\n\n**Setup**\n1. In the Hesperan console, create and calibrate a profile (here `ticket-routing`) whose answers are your Zammad **group names**.\n2. Add a Hesperan credential (API key `hsp_…`).\n3. In Zammad, create a Webhook to this workflow's production URL and a Trigger *Ticket created → Webhook*.\n4. Add a Zammad credential (token) and, for the tag call, a *Header Auth* credential: name `Authorization`, value `Token token=YOUR_TOKEN`. Replace `zammad.example.com`.\n5. Create the n8n Data Table `hesperan_decisions` with text columns `ticket_id`, `decision_id`, `decision`, `action`. The *outcome feedback* template reads it.",
+        "height": 620,
+        "width": 520
+      },
+      "id": "60ba9d32-e1c1-50de-90f0-f22a6f4845f0",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Auto\nConfidence reached the profile threshold: act on the decision.",
+        "height": 260,
+        "width": 700,
+        "color": 4
+      },
+      "id": "91d3d918-5ff6-57da-bb1c-9c99101704f5",
+      "name": "Auto section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Review\nBelow the threshold: tag the ticket and leave the call to a person.",
+        "height": 280,
+        "width": 700,
+        "color": 3
+      },
+      "id": "bc29f423-0634-571a-945f-fafa8beb72f9",
+      "name": "Review section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        30
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hesperan-zammad-new-ticket",
+        "options": {}
+      },
+      "id": "84c23c11-34ed-5fbf-8500-7f5c81bf26f9",
+      "name": "Zammad: new ticket",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "bd379d41-e7d7-5f02-96ba-560fa6d9e16d"
+    },
+    {
+      "parameters": {
+        "resource": "decision",
+        "operation": "decide",
+        "profile": {
+          "__rl": true,
+          "mode": "slug",
+          "value": "ticket-routing"
+        },
+        "stateSource": "text",
+        "stateText": "={{ $json.body.ticket.title }}\n\n{{ ($json.body.article.body || \"\").removeTags() }}",
+        "idempotencyKey": "=zammad-ticket-{{ $json.body.ticket.id }}",
+        "simplify": true,
+        "options": {}
+      },
+      "id": "76a5a4d3-c60c-52ce-9711-0189bd1451c6",
+      "name": "Hesperan: decide team",
+      "type": "n8n-nodes-hesperan.hesperan",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "tokenAuth",
+        "resource": "ticket",
+        "operation": "update",
+        "id": "={{ $('Zammad: new ticket').item.json.body.ticket.id }}",
+        "updateFields": {
+          "group": "={{ $json.hesperan.decision }}",
+          "note": "=Routed automatically by Hesperan: {{ $json.hesperan.decision }} (calibrated confidence {{ $json.hesperan.confidence }}, decision {{ $json.hesperan.decision_id }})."
+        }
+      },
+      "id": "21a927b8-66c4-5800-b02d-1fadac0247df",
+      "name": "Zammad: set group",
+      "type": "n8n-nodes-base.zammad",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zammad.example.com/api/v1/tags/add",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "item",
+              "value": "hesperan-review"
+            },
+            {
+              "name": "object",
+              "value": "Ticket"
+            },
+            {
+              "name": "o_id",
+              "value": "={{ $('Zammad: new ticket').item.json.body.ticket.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "475addef-258b-54fa-a724-17d57292b6e3",
+      "name": "Zammad: tag for review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "tokenAuth",
+        "resource": "ticket",
+        "operation": "update",
+        "id": "={{ $('Zammad: new ticket').item.json.body.ticket.id }}",
+        "updateFields": {
+          "note": "=Hesperan suggests {{ $('Hesperan: decide team').item.json.hesperan.decision }} (calibrated confidence {{ $('Hesperan: decide team').item.json.hesperan.confidence }}), below the threshold for automation. Please assign the ticket."
+        }
+      },
+      "id": "03c42d78-e37c-56da-9206-311da8a51d35",
+      "name": "Zammad: note suggestion",
+      "type": "n8n-nodes-base.zammad",
+      "typeVersion": 1,
+      "position": [
+        720,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "hesperan_decisions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ String($('Zammad: new ticket').item.json.body.ticket.id) }}",
+            "decision_id": "={{ $('Hesperan: decide team').item.json.hesperan.decision_id }}",
+            "decision": "={{ $('Hesperan: decide team').item.json.hesperan.decision }}",
+            "action": "={{ $('Hesperan: decide team').item.json.hesperan.action }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "decision_id",
+              "displayName": "decision_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "12ad6aaf-c7da-5bef-b508-5a247320090c",
+      "name": "Remember decision",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Zammad: new ticket": {
+      "main": [
+        [
+          {
+            "node": "Hesperan: decide team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hesperan: decide team": {
+      "main": [
+        [
+          {
+            "node": "Zammad: set group",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zammad: tag for review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zammad: set group": {
+      "main": [
+        [
+          {
+            "node": "Remember decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zammad: tag for review": {
+      "main": [
+        [
+          {
+            "node": "Zammad: note suggestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zammad: note suggestion": {
+      "main": [
+        [
+          {
+            "node": "Remember decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

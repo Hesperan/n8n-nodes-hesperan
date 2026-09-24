@@ -1,0 +1,172 @@
+{
+  "name": "Mailbox triage with Hesperan (IMAP, Auto or Review)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Mailbox triage with Hesperan (IMAP)\n\n**Who it's for:** teams that share one inbox and forward mail to the right team by hand.\n\n**What it does:** each new email goes to a calibrated Hesperan decision profile. On **Auto** (the calibrated confidence reached the profile's threshold) it is forwarded to the team's address. On **Review** it goes to a triage address with Hesperan's suggestion, and a person decides.\n\n**Setup**\n1. In the Hesperan console, create and calibrate a profile (here `mail-routing`) with one answer per team, e.g. `billing`, `shipping`, `technical`.\n2. Add credentials: Hesperan (API key `hsp_…`), IMAP for the shared inbox, SMTP for sending.\n3. Edit the team addresses in **Forward to team** and the triage address in **Send to triage**.\n\nThe whole email text is sent to Hesperan and counts towards billing; trim it in the *State* field if needed.",
+        "height": 560,
+        "width": 520
+      },
+      "id": "d2a0ee16-ad30-5c85-b908-440aa7a93667",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Auto\nForward to the team the profile chose.",
+        "height": 240,
+        "width": 480,
+        "color": 4
+      },
+      "id": "e93adaac-22a5-53d5-9578-7cc2f10db2e3",
+      "name": "Auto section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Review\nA person decides; Hesperan's suggestion is included.",
+        "height": 260,
+        "width": 480,
+        "color": 3
+      },
+      "id": "00b64478-11b7-5711-8499-d4aad99d3674",
+      "name": "Review section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        30
+      ]
+    },
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "read",
+        "format": "simple",
+        "options": {}
+      },
+      "id": "d2b767e0-e261-521a-90d0-451740437389",
+      "name": "New email (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "decision",
+        "operation": "decide",
+        "profile": {
+          "__rl": true,
+          "mode": "slug",
+          "value": "mail-routing"
+        },
+        "stateSource": "text",
+        "stateText": "=From: {{ $json.from }}\nSubject: {{ $json.subject }}\n\n{{ $json.textPlain }}",
+        "simplify": true,
+        "options": {}
+      },
+      "id": "f65d92dc-90d5-5c2c-8086-431ced9c4e81",
+      "name": "Hesperan: decide team",
+      "type": "n8n-nodes-hesperan.hesperan",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "inbox@example.com",
+        "toEmail": "={{ ({ billing: 'billing@example.com', shipping: 'shipping@example.com', technical: 'support@example.com' })[$json.hesperan.decision] || \"triage@example.com\" }}",
+        "subject": "=Fwd: {{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "=Forwarded automatically by Hesperan ({{ $json.hesperan.decision }}, calibrated confidence {{ $json.hesperan.confidence }}).\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\n{{ $json.textPlain }}",
+        "options": {
+          "appendAttribution": false,
+          "replyTo": "={{ $json.from }}"
+        }
+      },
+      "id": "538fea4c-75df-5ba6-b8cb-fa420ba4b7e6",
+      "name": "Forward to team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        500,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "inbox@example.com",
+        "toEmail": "triage@example.com",
+        "subject": "=[Review] {{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "=Hesperan suggests \"{{ $json.hesperan.decision }}\" (calibrated confidence {{ $json.hesperan.confidence }}), below the threshold for automation. Please route this email.\n\nFrom: {{ $json.from }}\nSubject: {{ $json.subject }}\n\n{{ $json.textPlain }}",
+        "options": {
+          "appendAttribution": false,
+          "replyTo": "={{ $json.from }}"
+        }
+      },
+      "id": "a4f42399-7b32-5799-86b2-e5f46fa2de57",
+      "name": "Send to triage",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        500,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "New email (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Hesperan: decide team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hesperan: decide team": {
+      "main": [
+        [
+          {
+            "node": "Forward to team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send to triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
