@@ -85,8 +85,8 @@ On 24 September 2026, `github.com/hesperan` and the npm name `n8n-nodes-hesperan
 
 In a test n8n instance: **Settings → Community Nodes → Install** → `n8n-nodes-hesperan`. Add a Hesperan
 credential with a real key (the test calls the free `GET /v1/me`), import `templates/zammad-ticket-triage.json`,
-and check Decide on a calibrated profile: Auto, Review, and the error shown while the API still answers 503
-"opens soon".
+and check Decide on a calibrated profile: Auto and Review. The first request after a quiet period can take about
+2–3 minutes or retry after 503 "model is starting" while the serverless model starts.
 
 ## 6. Submit the node for verification
 

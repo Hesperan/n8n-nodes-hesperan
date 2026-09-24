@@ -119,10 +119,14 @@ Messages say what happened and what to do; nothing is charged for any of these.
 | 429                  | Hesperan rate limit reached                                                                                      | yes, after Retry-After         |
 | 502                  | The Hesperan model could not answer                                                                              | yes, with backoff              |
 | 503 with Retry-After | The Hesperan model is starting                                                                                   | yes, after Retry-After         |
-| 503 "opens soon"     | The Hesperan API is not open yet: no model is connected                                                          | **no**, retrying does not help |
+| 503 "opens soon"     | Edge case, the Hesperan API is closed (no model connected)                                                       | **no**, retrying does not help |
 
 With **Retry Temporary Errors** on (default), the node retries up to 3 times and waits at most 60 seconds per
 attempt; the retried failures were not charged, so a retry never charges twice.
+
+Hesperan 1 runs on serverless GPUs. The first request after a quiet period starts the model and can take about 2–3
+minutes, or come back as 503 "model is starting" with Retry-After, which the node retries; later requests skip that
+wait while the model is warm.
 
 With the node setting **On Error → Continue**, a failed Decide item goes to **Review** with its own fields and
 `hesperan.error`, `hesperan.status` and `hesperan.description`, so a person can take over. With **Continue (using
@@ -151,7 +155,8 @@ node definitions only.
 - Tested in n8n 2.40.6 (Docker image `n8nio/n8n:2.40.6`): node and credential loading, the credential test,
   Auto/Review routing, routing by answer, Report Outcome, both "continue on fail" modes, and the two Zammad
   templates.
-- Requires a Hesperan API key. While Hesperan has no model connected, requests answer 503 "opens soon".
+- Requires a Hesperan API key (the free plan includes 1M input tokens a month). The first request after a quiet
+  period can take about 2–3 minutes while the serverless model starts.
 
 ## Development
 
